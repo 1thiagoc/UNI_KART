@@ -622,6 +622,7 @@ MonoBehaviour:
   - {fileID: 3354905731229706821}
   maxSteerAngle: 30
   wheelRotationSpeed: 500
+  normalDrag: 0
   brakeDrag: 5
 --- !u!4 &543450652534945118 stripped
 Transform:
