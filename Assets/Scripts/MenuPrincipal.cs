@@ -15,12 +15,27 @@ public class MenuPrincipal : MonoBehaviour
 
     [Header("Botões em cascata")]
     public CanvasGroup[] botoesMenu;
+    
+    [Header("Audio")]
+    public AudioClip menuMusic;
 
     void Start()
     {
         painelConfiguracoes.SetActive(false);
         painelMenu.SetActive(false);
         StartCoroutine(SequenciaAbertura());
+        // Garantir que exista um AudioManager persistente
+        if (AudioManager.Instance == null)
+        {
+            Debug.Log("MenuPrincipal: nenhum AudioManager encontrado — criando um novo.");
+            var go = new GameObject("AudioManager");
+            go.AddComponent<AudioManager>();
+        }
+
+        if (AudioManager.Instance != null && menuMusic != null)
+        {
+            AudioManager.Instance.PlayMusic(menuMusic);
+        }
     }
 
     void Update()
@@ -28,7 +43,7 @@ public class MenuPrincipal : MonoBehaviour
     if (Keyboard.current.spaceKey.wasPressedThisFrame)
     {
         Debug.Log("Espaço pressionado!");
-        SceneManager.LoadScene(1);
+        AoBotaoJogar();
     }
 }
 
@@ -87,6 +102,12 @@ public class MenuPrincipal : MonoBehaviour
 
     public void AoBotaoJogar()
 {
+    // Parar música de menu antes de carregar a cena de jogo
+    if (AudioManager.Instance != null)
+    {
+        AudioManager.Instance.StopMusic();
+    }
+
     SceneManager.LoadScene(1);
 }
 
