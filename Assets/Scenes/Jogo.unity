@@ -427,6 +427,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuPausa
   painelPausa: {fileID: 42540659}
+  pauseSfx: {fileID: 8300000, guid: d34c83c269a12084491543b0f1029ffb, type: 3}
 --- !u!4 &532096816
 Transform:
   m_ObjectHideFlags: 0
