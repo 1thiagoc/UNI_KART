@@ -24,6 +24,6 @@ public class PassengerUI : MonoBehaviour
     void Update()
     {
         if (pm != null && passengerText != null)
-            passengerText.text = pm.CurrentPassengers.ToString();
+            passengerText.text = "Passageiros: " + pm.CurrentPassengers.ToString();
     }
 }
