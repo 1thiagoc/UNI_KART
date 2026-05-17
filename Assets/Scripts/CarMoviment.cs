@@ -17,8 +17,10 @@ public class CarMoviment : MonoBehaviour
     public Transform[] allWheels;
 
     [Header("Configurações da rota")]
-    public float maxSteerAngle = 30f;
+    public float maxSteerAngle = 3f;
     public float wheelRotationSpeed = 500f;
+    public float steerSmoothingSpeed = 8f;
+    private float smoothedSteerAngle = 0f;
     
     // Configurações de arrasto (Drag)
     public float normalDrag = 0f;
@@ -63,7 +65,7 @@ public class CarMoviment : MonoBehaviour
             float multiplier = velocityDirection > 0 ? 1f : -1f;
             float rotationAmount = moviment.x * turnStrength * Time.deltaTime * multiplier;
 
-            // esilo drift
+            // estilo drift
             if(isBraking) rotationAmount *= 1.15f;
 
             transform.Rotate(0, rotationAmount, 0, Space.World);
@@ -71,12 +73,39 @@ public class CarMoviment : MonoBehaviour
 
         // Faz o carro visual seguir a esfera
         transform.position = sphereRB.transform.position;
+        MoveWheels();
+    }
+
+    void MoveWheels()
+    {
+        float targetSteerAngle = moviment.x * maxSteerAngle;
+        smoothedSteerAngle = Mathf.MoveTowards(smoothedSteerAngle, targetSteerAngle, steerSmoothingSpeed * maxSteerAngle * Time.deltaTime);
+
+        if (wheelFrontLeft != null) {
+            wheelFrontLeft.localRotation = Quaternion.Euler(0, 0, smoothedSteerAngle);
+        }
+        if (wheelFrontRight != null) {
+            wheelFrontRight.localRotation = Quaternion.Euler(0, 0, smoothedSteerAngle);
+        }
     }
 
     void FixedUpdate()
     {
         // Gerenciamento do Arrasto (Drag)
         sphereRB.linearDamping = isBraking ? brakeDrag : normalDrag;
+
+        float currentSpeed = sphereRB.linearVelocity.magnitude;
+    
+        if (currentSpeed > 0.5f && !isBraking)
+        {
+            // Descobre para onde o carro está se movendo (Frente ou Ré)
+            float velocityDirection = Vector3.Dot(sphereRB.linearVelocity, transform.forward);
+            Vector3 targetDirection = velocityDirection > 0 ? transform.forward : -transform.forward;
+
+            // Forçamos a velocidade da esfera a se alinhar com a nova frente do carro.
+            // O valor 0.1f controla a "derrapagem". Valores maiores (ex: 0.2f) fazem o carro grudar mais no chão.
+            sphereRB.linearVelocity = Vector3.Lerp(sphereRB.linearVelocity, targetDirection * currentSpeed, 0.12f);
+        }
         if (isBraking)
         {
             // Aplica uma força contrária à velocidade atual (Freio Ativo)
