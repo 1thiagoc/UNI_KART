@@ -4,12 +4,27 @@ using UnityEngine.InputSystem;
 public class CarMoviment : MonoBehaviour
 {
     public Rigidbody sphereRB;
+    
+    [Header("Velocidade")]
     public float forwardAccel = 8f;
     public float reverseAccel = 4f;
     public float maxSpeed = 50f;
     public float brakeForce = 15f;
     public float turnStrength = 180f;
-    public Transform carVisual;
+
+    [Header("Física Extra Anti-Pulo")]
+    public float extraGravity = 30f; // Força para puxar o carro para baixo
+    public float groundCheckDistance = 0.5f; // Distância para saber se está perto do chão
+    public LayerMask groundLayer; // Camada das pistas/ruas
+    public float normalDrag = 0f;
+
+    [Header("Sistema de Drift & Boost")]
+    public float driftTurnMultiplier = 1.6f; // O carro vira MAIS rápido durante o drift
+    [Range(0f, 1f)] public float driftGrip = 0.04f; // Menor = desliza mais de lado (estilo gelo)
+    [Range(0f, 1f)] public float normalGrip = 0.15f; // Maior = gruda mais no chão
+    public float boostForce = 25f; // Força do turbo ao soltar o botão
+    public float boostDuration = 0.5f; // Quanto tempo dura o turbo
+    private float boostTimer;
 
     [Header("Pivots das Rodas")]
     public Transform wheelFrontLeft;
@@ -21,24 +36,28 @@ public class CarMoviment : MonoBehaviour
     public float wheelRotationSpeed = 500f;
     public float steerSmoothingSpeed = 8f;
     private float smoothedSteerAngle = 0f;
-    
-    // Configurações de arrasto (Drag)
-    public float normalDrag = 0f;
-    public float brakeDrag = 5f;
+
+    [Header("Efeitos Visuais do Drift")]
+    public Transform carVisual; // O modelo 3D do carro (filho deste objeto)
+    public float driftVisualTilt = 15f; // Ângulo de inclinação do carro no drift
+    public ParticleSystem[] wheelParticles; // Arraste os Particle Systems das rodas traseiras para cá
+    public Color normalDriftColor = Color.yellow;
+    public Color turboReadyColor = Color.cyan; // Cor quando o turbo estiver carregado
 
     // Input System
     private InputAction inputAction;
-    private InputAction brakeAction;
+    private InputAction driftAction;
     
     // Valores de input
     private Vector2 moviment;
     private float speedInput;
-    private bool isBraking;
+    private bool isDrifting;
+    private float driftTimer; // Conta quanto tempo você ficou em drift para calcular o nível do turbo
 
     void Awake()
     {
         inputAction = InputSystem.actions.FindAction("Move");
-        brakeAction = InputSystem.actions.FindAction("Jump");
+        driftAction = InputSystem.actions.FindAction("Jump");
     }
 
     void Start()
@@ -46,14 +65,31 @@ public class CarMoviment : MonoBehaviour
         // Desacopla a esfera para que ela role livremente
         sphereRB.transform.parent = null;
         normalDrag = sphereRB.linearDamping;
+        SetParticleStatus(false); // Desliga as partículas no início
     }
 
     void Update()
     {
         // Input de acelerar/frear
         moviment = inputAction.ReadValue<Vector2>();
-        isBraking = brakeAction.IsPressed();
-        speedInput = isBraking ? 0 : moviment.y * (moviment.y > 0 ? forwardAccel : reverseAccel);
+        // Se o botão está pressionado E o carro está correndo rápido, ativa o Drift
+        bool capotandoCheck = sphereRB.linearVelocity.magnitude > 5f;
+        if (driftAction.IsPressed() && capotandoCheck && Mathf.Abs(moviment.x) > 0.1f)
+        {
+            isDrifting = true; // Ativou o drift neste frame
+            SetParticleStatus(true);
+            UpdateParticleEffects();
+        }
+        else
+        {
+            // Se soltou o botão e estava em drift, solta o Mini-Turbo!
+            if (isDrifting)
+            {
+                TriggerMiniTurbo();
+            }
+        }
+
+        speedInput = moviment.y * (moviment.y > 0 ? forwardAccel : reverseAccel);
 
         // Lógica de Rotação por Inércia
         // Verificamos a magnitude da velocidade física, não o input do teclado
@@ -63,17 +99,127 @@ public class CarMoviment : MonoBehaviour
         {
             // Se a velocidade for positiva, gira normal. Se for negativa (ré), inverte o giro.
             float multiplier = velocityDirection > 0 ? 1f : -1f;
-            float rotationAmount = moviment.x * turnStrength * Time.deltaTime * multiplier;
-
-            // estilo drift
-            if(isBraking) rotationAmount *= 1.15f;
-
+            float currentTurnStrength = isDrifting ? turnStrength * driftTurnMultiplier : turnStrength;
+            
+            float rotationAmount = moviment.x * currentTurnStrength * Time.deltaTime * multiplier;
             transform.Rotate(0, rotationAmount, 0, Space.World);
         }
 
-        // Faz o carro visual seguir a esfera
+        // Cronômetros
+        if (isDrifting) driftTimer += Time.deltaTime;
+        if (boostTimer > 0) boostTimer -= Time.deltaTime;
+
         transform.position = sphereRB.transform.position;
+        // Aplica os efeitos visuais de inclinação de chassis
+        HandleVisualTilt();
+    
         MoveWheels();
+    }
+
+        void HandleVisualTilt()
+    {
+        // Se estiver em drift, inclina o chassis para o lado oposto ou a favor da curva
+        float targetTilt = 0f;
+        if (isDrifting)
+        {
+            // Multiplica pelo sinal do input para inclinar para o lado certo da curva
+            targetTilt = -Mathf.Sign(moviment.x) * driftVisualTilt;
+        }
+
+        // Suaviza a inclinação para não ser um tranco seco
+        float currentTilt = Mathf.MoveTowardsAngle(carVisual.localEulerAngles.z, targetTilt, 80f * Time.deltaTime);
+        // carVisual.localRotation = Quaternion.Euler(carVisual.localEulerAngles.x, carVisual.localEulerAngles.y, targetTilt);
+    }
+
+    void SetParticleStatus(bool playing)
+    {
+        foreach (var p in wheelParticles)
+        {
+            if (p == null) continue;
+            if (playing && !p.isPlaying) p.Play();
+            if (!playing && p.isPlaying) p.Stop();
+        }
+    }
+
+    void UpdateParticleEffects()
+    {
+        // Altera a cor das partículas baseado no tempo de drift
+        Color currentColor = driftTimer > 0.6f ? turboReadyColor : normalDriftColor;
+        
+        foreach (var p in wheelParticles)
+        {
+            if (p == null) continue;
+            var mainModule = p.main;
+            mainModule.startColor = currentColor;
+        }
+    }
+
+    void FixedUpdate()
+    {
+        bool isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
+        if (isGrounded)
+        {
+            // Se estiver colado na pista, empurra para baixo com força extra para ignorar mini-fendas
+            sphereRB.AddForce(Vector3.down * extraGravity, ForceMode.Acceleration);
+        }
+        else
+        {
+            // Se saltar de verdade (uma rampa real), aplica uma gravidade menor ou padrão
+            sphereRB.AddForce(Vector3.down * (extraGravity * 2f), ForceMode.Acceleration);
+        }
+        sphereRB.linearDamping = normalDrag;
+        float currentSpeed = sphereRB.linearVelocity.magnitude;
+    
+        // 2. A MÁGICA DO DRIFT (Ajuste de Grip)
+        if (currentSpeed > 0.5f)
+        {
+            float velocityDirection = Vector3.Dot(sphereRB.linearVelocity, transform.forward);
+            Vector3 targetDirection = velocityDirection > 0 ? transform.forward : -transform.forward;
+
+            // Se estiver em drift, usamos 'driftGrip' (baixo, faz deslizar). Se não, usamos 'normalGrip' (alto, gruda).
+            float currentGrip = isDrifting ? driftGrip : normalGrip;
+            sphereRB.linearVelocity = Vector3.Lerp(sphereRB.linearVelocity, targetDirection * currentSpeed, currentGrip);
+        }
+
+        // 3. Sistema de Aceleração / Turbo
+        float currentAccel = speedInput;
+        float currentMaxSpeed = maxSpeed;
+
+        // Se o turbo estiver ativo, aumenta a aceleração e ultrapassa o limite de velocidade máxima!
+        if (boostTimer > 0)
+        {
+            currentAccel = forwardAccel * 2f;
+            currentMaxSpeed = maxSpeed * 1.5f;
+            sphereRB.AddForce(transform.forward * boostForce, ForceMode.VelocityChange);
+        }
+
+        bool canAccelerate = Mathf.Abs(currentAccel) > 0 && sphereRB.linearVelocity.magnitude < currentMaxSpeed;
+        if (canAccelerate)
+        {
+            sphereRB.AddForce(transform.forward * currentAccel * 10f, ForceMode.Acceleration);
+        }
+
+        // Trava de Velocidade Dinâmica
+        if (sphereRB.linearVelocity.magnitude > currentMaxSpeed)
+        {
+            sphereRB.linearVelocity = sphereRB.linearVelocity.normalized * currentMaxSpeed;
+        }
+    }
+
+    void TriggerMiniTurbo()
+    {
+        isDrifting = false;
+        SetParticleStatus(false);
+
+        // Só ganha turbo se segurou o drift por mais de 0.6 segundos (evita ganhar turbo só clicando rápido)
+        if (driftTimer > 0.6f)
+        {
+            boostTimer = boostDuration;
+            Debug.Log("MINI TURBO ACTIVATED!");
+            // Aqui você pode instanciar partículas de fogo azul/laranja nas rodas!
+        }
+
+        driftTimer = 0f;
     }
 
     void MoveWheels()
@@ -86,43 +232,6 @@ public class CarMoviment : MonoBehaviour
         }
         if (wheelFrontRight != null) {
             wheelFrontRight.localRotation = Quaternion.Euler(0, 0, smoothedSteerAngle);
-        }
-    }
-
-    void FixedUpdate()
-    {
-        // Gerenciamento do Arrasto (Drag)
-        sphereRB.linearDamping = isBraking ? brakeDrag : normalDrag;
-
-        float currentSpeed = sphereRB.linearVelocity.magnitude;
-    
-        if (currentSpeed > 0.5f && !isBraking)
-        {
-            // Descobre para onde o carro está se movendo (Frente ou Ré)
-            float velocityDirection = Vector3.Dot(sphereRB.linearVelocity, transform.forward);
-            Vector3 targetDirection = velocityDirection > 0 ? transform.forward : -transform.forward;
-
-            // Forçamos a velocidade da esfera a se alinhar com a nova frente do carro.
-            // O valor 0.1f controla a "derrapagem". Valores maiores (ex: 0.2f) fazem o carro grudar mais no chão.
-            sphereRB.linearVelocity = Vector3.Lerp(sphereRB.linearVelocity, targetDirection * currentSpeed, 0.12f);
-        }
-        if (isBraking)
-        {
-            // Aplica uma força contrária à velocidade atual (Freio Ativo)
-            sphereRB.AddForce(-sphereRB.linearVelocity * brakeForce, ForceMode.Acceleration);
-            return;
-        }
-        // Verificamos se há input e se ainda está abaixo do limite de velocidade
-        bool canAccelerate = Mathf.Abs(speedInput) > 0 && sphereRB.linearVelocity.magnitude < maxSpeed;
-        if (canAccelerate)
-        {
-            // Aplica força para frente
-            sphereRB.AddForce(transform.forward * speedInput * 10f, ForceMode.Acceleration);
-        }
-        // Trava de Velocidade (Hard Cap)
-        if (sphereRB.linearVelocity.magnitude > maxSpeed)
-        {
-            sphereRB.linearVelocity = sphereRB.linearVelocity.normalized * maxSpeed;
         }
     }
 }
