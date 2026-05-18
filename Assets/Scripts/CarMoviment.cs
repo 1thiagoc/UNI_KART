@@ -116,7 +116,7 @@ public class CarMoviment : MonoBehaviour
         MoveWheels();
     }
 
-        void HandleVisualTilt()
+    void HandleVisualTilt()
     {
         // Se estiver em drift, inclina o chassis para o lado oposto ou a favor da curva
         float targetTilt = 0f;
@@ -126,9 +126,16 @@ public class CarMoviment : MonoBehaviour
             targetTilt = -Mathf.Sign(moviment.x) * driftVisualTilt;
         }
 
-        // Suaviza a inclinação para não ser um tranco seco
-        float currentTilt = Mathf.MoveTowardsAngle(carVisual.localEulerAngles.z, targetTilt, 80f * Time.deltaTime);
-        // carVisual.localRotation = Quaternion.Euler(carVisual.localEulerAngles.x, carVisual.localEulerAngles.y, targetTilt);
+        // 1. Pegamos a rotação atual em Z usando um método seguro que evita bugs de 360 graus na Unity
+        float currentTiltZ = carVisual.localRotation.eulerAngles.z;
+        if (currentTiltZ > 180) currentTiltZ -= 360; // Converte escala 0-360 para -180 a 180
+
+        // 2. Suaviza a inclinação para não ser um tranco seco
+        float smoothedTilt = Mathf.MoveTowards(currentTiltZ, targetTilt, 90f * Time.deltaTime);
+        
+        // 3. Forçamos X e Y a ficarem estritamente zerados em relação ao pai. 
+        // Isso impede o carro visual de girar igual um pião sozinho!
+        carVisual.localRotation = Quaternion.Euler(carVisual.localRotation.x, carVisual.localRotation.y, smoothedTilt);
     }
 
     void SetParticleStatus(bool playing)
@@ -228,10 +235,10 @@ public class CarMoviment : MonoBehaviour
         smoothedSteerAngle = Mathf.MoveTowards(smoothedSteerAngle, targetSteerAngle, steerSmoothingSpeed * maxSteerAngle * Time.deltaTime);
 
         if (wheelFrontLeft != null) {
-            wheelFrontLeft.localRotation = Quaternion.Euler(0, 0, smoothedSteerAngle);
+            wheelFrontLeft.localRotation = Quaternion.Euler(0, smoothedSteerAngle, 0);
         }
         if (wheelFrontRight != null) {
-            wheelFrontRight.localRotation = Quaternion.Euler(0, 0, smoothedSteerAngle);
+            wheelFrontRight.localRotation = Quaternion.Euler(0, smoothedSteerAngle, 0);
         }
     }
 }
