@@ -1,9 +1,11 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 public class CarMoviment : MonoBehaviour
 {
     public Rigidbody sphereRB;
+    public TMP_Text speedText;
     
     [Header("Velocidade")]
     public float forwardAccel = 8f;
@@ -163,6 +165,16 @@ public class CarMoviment : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (speedText != null)
+        {
+            // Pega a velocidade real da esfera física
+            float carSpeed = sphereRB.linearVelocity.magnitude;
+
+            // Multiplica por um fator se quiser converter para KM/H visual (ex: * 3.6f)
+            // Se a sua velocidade máxima já estiver calibrada em um valor alto (ex: 50f), pode usar o valor direto.
+            int speedInKmh = Mathf.RoundToInt(carSpeed * 2.5f); // Ajuste o multiplicador (2.5f) para parecer realista na sua pista
+            speedText.text = "Velocidade: " + speedInKmh + " KM/H";
+        }
         bool isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
         if (isGrounded)
         {

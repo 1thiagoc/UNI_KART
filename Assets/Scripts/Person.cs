@@ -7,6 +7,8 @@ public class Person : MonoBehaviour
     public float boardingDistance = 4f;
     public float checkInterval = 0.25f;
 
+    [HideInInspector] public Collider myStopZoneCollider; // Vaga onde este passageiro está associado
+
     bool inCar = false;
 
     void Start()
@@ -19,10 +21,11 @@ public class Person : MonoBehaviour
         while (!inCar)
         {
             var pm = PassengerManager.Instance;
-            if (pm != null && pm.CarTransform != null)
+            if (pm != null && pm.CarTransform != null && myStopZoneCollider != null)
             {
-                float dist = Vector3.Distance(transform.position, pm.CarTransform.position);
-                if (dist <= boardingDistance && pm.IsCarStopped())
+                bool carInZone = myStopZoneCollider.bounds.Contains(pm.CarTransform.position);
+
+                if (carInZone && pm.IsCarStopped())
                 {
                     var seat = pm.TryBoard(this);
                     if (seat != null)
@@ -51,10 +54,20 @@ public class Person : MonoBehaviour
 
         if (destination != null)
         {
-            transform.position = destination.position + destination.right * 2f + Vector3.up * 1f;
+            // Tenta achar o ponto da calçada da zona de destino
+            StopZone destZone = destination.GetComponent<StopZone>();
+            if (destZone != null && destZone.sidewalkPoint != null)
+            {
+                transform.position = destZone.sidewalkPoint.position;
+            }
+            else
+            {
+                // Safe-check caso não tenha configurado o ponto da calçada
+                transform.position = destination.position + Vector3.up * 1f;
+            }
         }
 
-        transform.rotation = Quaternion.Euler(0f, 0f, 0f);
+        transform.rotation = Quaternion.identity;
 
         var rend = GetComponent<Renderer>();
         if (rend != null)

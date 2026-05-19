@@ -62,18 +62,30 @@ public class PersonSpawner : MonoBehaviour
             if (sp == null)
                 continue;
 
+            StopZone stopZone = sp.GetComponent<StopZone>();
+            Vector3 spawnPos = sp.position;
+            Quaternion spawnRot = sp.rotation;
+
+            // Se a vaga tiver um ponto de calçada configurado, spawna o pedestre na calçada!
+            if (stopZone != null && stopZone.sidewalkPoint != null)
+            {
+                spawnPos = stopZone.sidewalkPoint.position;
+                spawnRot = stopZone.sidewalkPoint.rotation;
+            }
+
             GameObject personGO;
             if (personPrefab != null)
             {
-                personGO = Instantiate(personPrefab, sp.position, sp.rotation, null);
+                personGO = Instantiate(personPrefab, spawnPos, spawnRot, null);
             }
             else
             {
                 personGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                personGO.transform.position = sp.position;
-                personGO.transform.rotation = sp.rotation;
+                personGO.transform.position = spawnPos;
+                personGO.transform.rotation = spawnRot;
                 personGO.transform.localScale = new Vector3(0.5f, 1.0f, 0.5f);
-                personGO.name = "Person";
+                personGO.name = "Passenger";
+
                 var r = personGO.GetComponent<Renderer>();
                 if (r)
                     r.material.color = Color.red;
@@ -87,19 +99,25 @@ public class PersonSpawner : MonoBehaviour
             if (person == null)
                 person = personGO.AddComponent<Person>();
 
+            // Entrega a referência do collider da zona para o passageiro monitorar
+            if (stopZone != null)
+            {
+                person.myStopZoneCollider = stopZone.GetComponent<Collider>();
+            }
+
+            // Define um destino aleatório baseado nas vagas de destino disponíveis
             if (destinationPoints != null && destinationPoints.Length > 0)
             {
                 person.destination = destinationPoints[Random.Range(0, destinationPoints.Length)];
             }
         }
-        if (destinationPoints != null)
-        {
-            foreach (var dp in destinationPoints)
-            {
-                if (dp != null)
-                    CreateDestinationMarker(dp);
-            }
-        }
+        // if (destinationPoints != null)
+        // {
+        //     foreach (var dp in destinationPoints)
+        //     {
+        //         if (dp != null) CreateDestinationMarker(dp);
+        //     }
+        // }
     }
 
     void OnDrawGizmos()
