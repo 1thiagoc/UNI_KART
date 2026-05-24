@@ -42,6 +42,8 @@ public class CarMoviment : MonoBehaviour
     [Header("Efeitos Visuais do Drift")]
     public Transform carVisual; // O modelo 3D do carro (filho deste objeto)
     public float driftVisualTilt = 15f; // Ângulo de inclinação do carro no drift
+    public float driftVisualYaw = 20f;  // Ângulo de rotação lateral do chassi no drift (Eixo Y)
+    public float visualSmoothSpeed = 10f; // Velocidade de transição da rotação visual
     public ParticleSystem[] wheelParticles; // Arraste os Particle Systems das rodas traseiras para cá
     public Color normalDriftColor = Color.yellow;
     public Color turboReadyColor = Color.cyan; // Cor quando o turbo estiver carregado
@@ -120,24 +122,30 @@ public class CarMoviment : MonoBehaviour
 
     void HandleVisualTilt()
     {
-        // Se estiver em drift, inclina o chassis para o lado oposto ou a favor da curva
         float targetTilt = 0f;
+        float targetYaw = 0f;
+
         if (isDrifting)
         {
-            // Multiplica pelo sinal do input para inclinar para o lado certo da curva
+            // Eixo Z: Multiplica pelo sinal do input para inclinar para o lado certo da curva
             targetTilt = -Mathf.Sign(moviment.x) * driftVisualTilt;
+
+            // Eixo Y: Aponta o bico do carro levemente para o interior da curva enquanto desliza
+            targetYaw = Mathf.Sign(moviment.x) * driftVisualYaw;
         }
 
-        // 1. Pegamos a rotação atual em Z usando um método seguro que evita bugs de 360 graus na Unity
+        // 1. Tratamento seguro do eixo Z (evitando bugs de rotação da Unity de 0 a 360)
         float currentTiltZ = carVisual.localRotation.eulerAngles.z;
-        if (currentTiltZ > 180) currentTiltZ -= 360; // Converte escala 0-360 para -180 a 180
-
-        // 2. Suaviza a inclinação para não ser um tranco seco
+        if (currentTiltZ > 180) currentTiltZ -= 360;
         float smoothedTilt = Mathf.MoveTowards(currentTiltZ, targetTilt, 90f * Time.deltaTime);
+
+        // 2. Tratamento seguro do eixo Y local para a rotação de lado
+        float currentYawY = carVisual.localRotation.eulerAngles.y;
+        if (currentYawY > 180) currentYawY -= 360;
+        float smoothedYaw = Mathf.MoveTowards(currentYawY, targetYaw, visualSmoothSpeed * driftVisualYaw * Time.deltaTime);
         
-        // 3. Forçamos X e Y a ficarem estritamente zerados em relação ao pai. 
-        // Isso impede o carro visual de girar igual um pião sozinho!
-        carVisual.localRotation = Quaternion.Euler(carVisual.localRotation.x, carVisual.localRotation.y, smoothedTilt);
+        // 3. Aplicamos as rotações calculadas travando estritamente o eixo X em zero
+        carVisual.localRotation = Quaternion.Euler(0f, smoothedYaw, smoothedTilt);
     }
 
     void SetParticleStatus(bool playing)
