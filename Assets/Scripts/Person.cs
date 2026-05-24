@@ -8,11 +8,16 @@ public class Person : MonoBehaviour
     public float checkInterval = 0.25f;
 
     [HideInInspector] public Collider myStopZoneCollider; // Vaga onde este passageiro está associado
+    [HideInInspector] public RuntimeAnimatorController idleController;
+    [HideInInspector] public RuntimeAnimatorController sitController;
+
+    private Animator animator;
 
     bool inCar = false;
 
     void Start()
     {
+        animator = GetComponentInChildren<Animator>();
         StartCoroutine(CheckForCar());
     }
 
@@ -40,6 +45,9 @@ public class Person : MonoBehaviour
                         if (rend != null)
                             rend.enabled = false;
 
+                        if (animator != null && sitController != null)
+                            animator.runtimeAnimatorController = sitController;
+
                         yield break;
                     }
                 }
@@ -56,9 +64,13 @@ public class Person : MonoBehaviour
         {
             // Tenta achar o ponto da calçada da zona de destino
             StopZone destZone = destination.GetComponent<StopZone>();
-            if (destZone != null && destZone.sidewalkPoint != null)
+            if (destZone != null)
             {
-                transform.position = destZone.sidewalkPoint.position;
+                Transform randomCalçada = destZone.GetRandomSidewalkPoint();
+                if (randomCalçada != null)
+                    transform.position = randomCalçada.position;
+                else
+                    transform.position = destination.position + Vector3.up * 1f;
             }
             else
             {
@@ -68,6 +80,10 @@ public class Person : MonoBehaviour
         }
 
         transform.rotation = Quaternion.identity;
+        if (animator != null && idleController != null)
+        {
+            animator.runtimeAnimatorController = idleController;
+        }
 
         var rend = GetComponent<Renderer>();
         if (rend != null)
