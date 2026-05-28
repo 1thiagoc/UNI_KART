@@ -9,6 +9,13 @@ public class PersonSpawner : MonoBehaviour
     public Transform[] spawnPoints;
     public Transform[] destinationPoints;
 
+    [Header("Configurações de Animação")]
+    [Tooltip("Animation Controller para quando o personagem estiver esperando na calçada.")]
+    public RuntimeAnimatorController idleAnimatorController;
+    
+    [Tooltip("Animation Controller para quando o personagem estiver sentado dentro do carro.")]
+    public RuntimeAnimatorController sitAnimatorController;
+
     [Tooltip("Spawn on Start (one person per spawn point).")]
     public bool spawnOnStart = true;
 
@@ -59,80 +66,108 @@ public class PersonSpawner : MonoBehaviour
         for (int i = 0; i < spawnPoints.Length; i++)
         {
             var sp = spawnPoints[i];
-            if (sp == null)
-                continue;
+            if (sp == null) continue;
 
-            GameObject personGO;
-            if (personPrefab != null)
+            StopZone stopZone = sp.GetComponent<StopZone>();
+
+            // Se for uma StopZone válida e tiver pontos na calçada, spawna um passageiro por ponto!
+            if (stopZone != null && stopZone.sidewalkPoints != null && stopZone.sidewalkPoints.Length > 0)
             {
-                personGO = Instantiate(personPrefab, sp.position, sp.rotation, null);
+                foreach (Transform point in stopZone.sidewalkPoints)
+                {
+                    if (point == null) continue;
+                    CreatePassenger(point.position, point.rotation, stopZone);
+                }
             }
             else
             {
-                personGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                personGO.transform.position = sp.position;
-                personGO.transform.rotation = sp.rotation;
-                personGO.transform.localScale = new Vector3(0.5f, 1.0f, 0.5f);
-                personGO.name = "Person";
-                var r = personGO.GetComponent<Renderer>();
-                if (r)
-                    r.material.color = Color.red;
-                // remove collider if you prefer no physics interactions
-                var col = personGO.GetComponent<Collider>();
-                if (col)
-                    col.isTrigger = true;
-            }
-
-            var person = personGO.GetComponent<Person>();
-            if (person == null)
-                person = personGO.AddComponent<Person>();
-
-            if (destinationPoints != null && destinationPoints.Length > 0)
-            {
-                person.destination = destinationPoints[Random.Range(0, destinationPoints.Length)];
+                // Fallback de segurança: se não for uma vaga com calçadas, spawna apenas um no centro do ponto
+                CreatePassenger(sp.position, sp.rotation, stopZone);
             }
         }
-        if (destinationPoints != null)
+    }
+
+    private void CreatePassenger(Vector3 position, Quaternion rotation, StopZone sourceZone)
+    {
+        GameObject personGO;
+        if (personPrefab != null)
         {
-            foreach (var dp in destinationPoints)
+            personGO = Instantiate(personPrefab, position, rotation, null);
+        }
+        else
+        {
+            personGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            personGO.transform.position = position;
+            personGO.transform.rotation = rotation;
+            personGO.transform.localScale = new Vector3(0.5f, 1.0f, 0.5f);
+            personGO.name = "Passenger";
+
+            var r = personGO.GetComponent<Renderer>();
+            if (r) r.material.color = Color.red;
+
+            var col = personGO.GetComponent<Collider>();
+            if (col) col.isTrigger = true;
+        }
+
+        var person = personGO.GetComponent<Person>();
+        if (person == null) 
+            person = personGO.AddComponent<Person>();
+
+        var animator = personGO.GetComponentInChildren<Animator>();
+        if (animator == null && personPrefab != null)
+        {
+            // Se o prefab tiver um modelo 3D interno com Animator, tenta buscar
+            animator = personGO.GetComponentInChildren<Animator>();
+        }
+
+        if (animator != null)
+        {
+            // Guarda as referências no script do personagem para uso futuro
+            person.idleController = idleAnimatorController;
+            person.sitController = sitAnimatorController;
+
+            // Define o estado inicial como Idle (parado na calçada)
+            if (idleAnimatorController != null)
             {
-                if (dp != null)
-                    CreateDestinationMarker(dp);
+                animator.runtimeAnimatorController = idleAnimatorController;
             }
+        }
+        // Entrega a referência do collider da zona para o passageiro monitorar o embarque
+        if (sourceZone != null)
+        {
+            person.myStopZoneCollider = sourceZone.GetComponent<Collider>();
+        }
+
+        // Define uma zona de destino aleatória baseada nas opções do array
+        if (destinationPoints != null && destinationPoints.Length > 0)
+        {
+            person.destination = destinationPoints[Random.Range(0, destinationPoints.Length)];
         }
     }
 
     void OnDrawGizmos()
     {
-        // draw spawn points (green)
+        // Desenha os pontos de spawn (Verde) - ignora se já tiver o desenho interno do StopZone
         if (spawnPoints != null)
         {
             Gizmos.color = Color.green;
             foreach (var sp in spawnPoints)
             {
-                if (sp == null)
-                    continue;
+                if (sp == null || sp.GetComponent<StopZone>() != null) continue;
                 Gizmos.DrawSphere(sp.position, 0.2f);
                 Gizmos.DrawLine(sp.position, sp.position + Vector3.up * 0.5f);
-#if UNITY_EDITOR
-                UnityEditor.Handles.Label(sp.position + Vector3.up * 0.5f, sp.name);
-#endif
             }
         }
 
-        // draw destination points (cyan)
+        // Desenha os pontos de destino (Ciano) - ignora se já tiver o desenho interno do StopZone
         if (destinationPoints != null)
         {
             Gizmos.color = Color.cyan;
             foreach (var dp in destinationPoints)
             {
-                if (dp == null)
-                    continue;
+                if (dp == null || dp.GetComponent<StopZone>() != null) continue;
                 Gizmos.DrawCube(dp.position, Vector3.one * 0.3f);
                 Gizmos.DrawLine(dp.position, dp.position + Vector3.up * 0.5f);
-#if UNITY_EDITOR
-                UnityEditor.Handles.Label(dp.position + Vector3.up * 0.5f, dp.name);
-#endif
             }
         }
     }

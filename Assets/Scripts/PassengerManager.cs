@@ -8,7 +8,7 @@ public class PassengerManager : MonoBehaviour
     public int capacity = 4;
     public Transform[] seats;
     public float dropOffRadius = 8f;
-    public float stoppedSpeedThreshold = 1.2f;
+    public float stoppedSpeedThreshold = 10f;
 
     List<Person> passengers = new List<Person>();
 
@@ -68,7 +68,7 @@ public class PassengerManager : MonoBehaviour
 
     void Update()
     {
-        // check drop-off conditions per passenger
+        // Varre a lista de trás para frente para poder remover elementos com segurança
         for (int i = passengers.Count - 1; i >= 0; i--)
         {
             var p = passengers[i];
@@ -77,15 +77,27 @@ public class PassengerManager : MonoBehaviour
                 passengers.RemoveAt(i);
                 continue;
             }
-            if (p.destination == null)
-                continue;
-            float d = Vector3.Distance(transform.position, p.destination.position);
-            Debug.Log($"Passenger {p.name} | dist={d} | stopped={IsCarStopped()}");
-            if (d <= dropOffRadius && IsCarStopped())
+            if (p.destination == null) continue;
+
+            // Pega o collider da vaga de destino
+            Collider destCollider = p.destination.GetComponent<Collider>();
+            bool arrivedAtDestinationZone = false;
+
+            if (destCollider != null)
             {
-                // drop off
+                // Checa se o carro entrou no quadrado da vaga de destino
+                arrivedAtDestinationZone = destCollider.bounds.Contains(transform.position);
+            }
+            else
+            {
+                // Fallback caso o destino não tenha collider (usa a distância antiga)
+                arrivedAtDestinationZone = Vector3.Distance(transform.position, p.destination.position) <= dropOffRadius;
+            }
+
+            if (arrivedAtDestinationZone && IsCarStopped())
+            {
                 passengers.RemoveAt(i);
-                p.OnDroppedOff();
+                p.OnDroppedOff(); // Faz ele reaparecer na calçada do destino e sumir
             }
         }
     }
