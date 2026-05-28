@@ -39,18 +39,18 @@ public class MenuPrincipal : MonoBehaviour
     }
 
     void Update()
-{
-    if (Keyboard.current.spaceKey.wasPressedThisFrame)
     {
-        Debug.Log("Espaço pressionado!");
-        AoBotaoJogar();
+        if (Keyboard.current.spaceKey.wasPressedThisFrame)
+        {
+            Debug.Log("Espaço pressionado!");
+            AoBotaoJogar();
+        }
     }
-}
 
     IEnumerator SequenciaAbertura()
     {
         telaFade.color = new Color(0, 0, 0, 1);
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.3f);
         yield return StartCoroutine(FadeAlpha(1f, 0f, 2f));
         yield return new WaitForSeconds(0.5f);
         painelMenu.SetActive(true);
@@ -101,15 +101,15 @@ public class MenuPrincipal : MonoBehaviour
     }
 
     public void AoBotaoJogar()
-{
-    // Parar música de menu antes de carregar a cena de jogo
-    if (AudioManager.Instance != null)
     {
-        AudioManager.Instance.StopMusic();
-    }
+        // Parar música de menu antes de carregar a cena de jogo
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopMusic();
+        }
 
-    SceneManager.LoadScene(1);
-}
+        SceneManager.LoadScene(1);
+    }
 
     public void AoBotaoContinuar()
     {
