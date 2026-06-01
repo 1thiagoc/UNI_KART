@@ -11,7 +11,15 @@ public class PassengerManager : MonoBehaviour
     public float stoppedSpeedThreshold = 10f;
 
     List<Person> passengers = new List<Person>();
-    public int totalDelivered = 0; // NOVO
+    public int totalDelivered = 0; 
+
+    // ---- GESTÃO DE TEMPO CENTRALIZADA ----
+    private float raceTime = 0f;
+    private bool raceStarted = false;
+
+    public float RaceTime => raceTime;
+    public bool RaceStarted => raceStarted;
+    // --------------------------------------
 
     void Awake()
     {
@@ -42,6 +50,12 @@ public class PassengerManager : MonoBehaviour
         if (seat == null)
             return null;
         passengers.Add(p);
+        // Dispara o tempo do jogo assim que o primeiro passageiro botar o pé no carro!
+        if (!raceStarted)
+        {
+            raceStarted = true;
+            Debug.Log("Primeiro passageiro entrou! Cronômetro iniciado.");
+        }
         return seat;
     }
 
@@ -68,6 +82,12 @@ public class PassengerManager : MonoBehaviour
 
     void Update()
     {
+        // Incrementa o tempo se a corrida já tiver começado
+        if (raceStarted)
+        {
+            raceTime += Time.deltaTime;
+        }
+
         for (int i = passengers.Count - 1; i >= 0; i--)
         {
             var p = passengers[i];
@@ -94,7 +114,7 @@ public class PassengerManager : MonoBehaviour
             {
                 passengers.RemoveAt(i);
                 p.OnDroppedOff();
-                totalDelivered++; // NOVO
+                totalDelivered++;
             }
         }
     }

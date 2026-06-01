@@ -23,10 +23,10 @@ public class RaceEndScreen : MonoBehaviour
     public string menuSceneName = "Menu";
     public int totalPassengersToDeliver = 0;
 
-    private float raceTime = 0f;
-    private bool raceActive = false;
     private bool raceEnded = false;
     private int totalCount = 0;
+    private float noPassengerTimer = 0f;
+    private float finalSavedTime = 0f; // Guarda o tempo exato de fechamento
 
     void Start()
     {
@@ -38,43 +38,50 @@ public class RaceEndScreen : MonoBehaviour
         totalCount = totalPassengersToDeliver > 0
             ? totalPassengersToDeliver
             : FindObjectsByType<Person>(FindObjectsSortMode.None).Length;
-
-        raceActive = true;
     }
-
-   private float noPassengerTimer = 0f;
 
     void Update()
     {
-        if (!raceActive || raceEnded) {
-            runningTimeText.text = "Corrida não iniciada";
-            return;
-        }
-
-        raceTime += Time.deltaTime;
-        runningTimeText.text = "Tempo: " + FormatTime(raceTime);
-        if (raceTime < 3f) return;
+        if (raceEnded) return;
 
         var pm = PassengerManager.Instance;
         if (pm == null) return;
 
-        // Se não tem passageiro no carro e contador parou, fim de corrida
+        // Se a corrida ainda não começou no PassengerManager, exibe a mensagem de espera
+        if (!pm.RaceStarted)
+        {
+            if (runningTimeText != null)
+                runningTimeText.text = "Aguardando primeiro passageiro...";
+            return;
+        }
+
+        // Atualiza o texto da UI lendo diretamente do gerenciador central
+        if (runningTimeText != null)
+            runningTimeText.text = "Tempo: " + FormatTime(pm.RaceTime);
+
+        // Evita encerrar a corrida nos primeiros instantes de segurança do jogo
+        if (pm.RaceTime < 3f) return;
+
+        // Se não tem mais passageiros no carro e o contador de entregas já operou, inicia o encerramento
         if (pm.CurrentPassengers == 0 && pm.totalDelivered > 0)
         {
             noPassengerTimer += Time.deltaTime;
             if (noPassengerTimer >= 3f)
+            {
+                finalSavedTime = pm.RaceTime; // Salva o tempo final exato
                 EndRace();
+            }
         }
         else
         {
             noPassengerTimer = 0f;
         }
     }
+
     void EndRace()
     {
         if (raceEnded) return;
         raceEnded = true;
-        raceActive = false;
         StartCoroutine(ShowEndScreen());
     }
 
@@ -88,10 +95,10 @@ public class RaceEndScreen : MonoBehaviour
             titleText.text = "CORRIDA CONCLUÍDA!";
 
         if (timeText != null)
-            timeText.text = "Tempo: " + FormatTime(raceTime);
+            timeText.text = "Tempo Final: " + FormatTime(finalSavedTime);
 
         if (ratingText != null)
-            ratingText.text = GetRating();
+            ratingText.text = GetRating(finalSavedTime);
     }
 
     string FormatTime(float seconds)
@@ -101,12 +108,12 @@ public class RaceEndScreen : MonoBehaviour
         return $"{min:00}:{sec:00}";
     }
 
-    string GetRating()
+    string GetRating(float finalTime)
     {
-        float timePerPassenger = totalCount > 0 ? raceTime / totalCount : raceTime;
+        float timePerPassenger = totalCount > 0 ? finalTime / totalCount : finalTime;
 
-        if      (timePerPassenger < 15f) return "***** INCRIVEL!";
-        else if (timePerPassenger < 25f) return "**** OTIMO!";
+        if      (timePerPassenger < 15f) return "***** INCRÍVEL!";
+        else if (timePerPassenger < 25f) return "**** ÓTIMO!";
         else if (timePerPassenger < 40f) return "*** BOM!";
         else if (timePerPassenger < 60f) return "** OK";
         else                             return "* PODE MELHORAR";
