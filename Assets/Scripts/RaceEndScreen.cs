@@ -13,6 +13,7 @@ public class RaceEndScreen : MonoBehaviour
     public TMP_Text titleText;
     public TMP_Text timeText;
     public TMP_Text ratingText;
+    public TMP_Text runningTimeText;
 
     [Header("Botões")]
     public Button btnRestart;
@@ -43,28 +44,32 @@ public class RaceEndScreen : MonoBehaviour
 
    private float noPassengerTimer = 0f;
 
-void Update()
-{
-    if (!raceActive || raceEnded) return;
-
-    raceTime += Time.deltaTime;
-    if (raceTime < 3f) return;
-
-    var pm = PassengerManager.Instance;
-    if (pm == null) return;
-
-    // Se não tem passageiro no carro e contador parou, fim de corrida
-    if (pm.CurrentPassengers == 0 && pm.totalDelivered > 0)
+    void Update()
     {
-        noPassengerTimer += Time.deltaTime;
-        if (noPassengerTimer >= 3f)
-            EndRace();
+        if (!raceActive || raceEnded) {
+            runningTimeText.text = "Corrida não iniciada";
+            return;
+        }
+
+        raceTime += Time.deltaTime;
+        runningTimeText.text = "Tempo: " + FormatTime(raceTime);
+        if (raceTime < 3f) return;
+
+        var pm = PassengerManager.Instance;
+        if (pm == null) return;
+
+        // Se não tem passageiro no carro e contador parou, fim de corrida
+        if (pm.CurrentPassengers == 0 && pm.totalDelivered > 0)
+        {
+            noPassengerTimer += Time.deltaTime;
+            if (noPassengerTimer >= 3f)
+                EndRace();
+        }
+        else
+        {
+            noPassengerTimer = 0f;
+        }
     }
-    else
-    {
-        noPassengerTimer = 0f;
-    }
-}
     void EndRace()
     {
         if (raceEnded) return;
@@ -97,15 +102,15 @@ void Update()
     }
 
     string GetRating()
-{
-    float timePerPassenger = totalCount > 0 ? raceTime / totalCount : raceTime;
+    {
+        float timePerPassenger = totalCount > 0 ? raceTime / totalCount : raceTime;
 
-    if      (timePerPassenger < 15f) return "***** INCRIVEL!";
-    else if (timePerPassenger < 25f) return "**** OTIMO!";
-    else if (timePerPassenger < 40f) return "*** BOM!";
-    else if (timePerPassenger < 60f) return "** OK";
-    else                             return "* PODE MELHORAR";
-}
+        if      (timePerPassenger < 15f) return "***** INCRIVEL!";
+        else if (timePerPassenger < 25f) return "**** OTIMO!";
+        else if (timePerPassenger < 40f) return "*** BOM!";
+        else if (timePerPassenger < 60f) return "** OK";
+        else                             return "* PODE MELHORAR";
+    }
 
     void RestartRace()
     {

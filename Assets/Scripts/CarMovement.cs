@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
 
-public class CarMoviment : MonoBehaviour
+public class CarMovement : MonoBehaviour
 {
     public Rigidbody sphereRB;
     public TMP_Text speedText;
@@ -53,7 +53,7 @@ public class CarMoviment : MonoBehaviour
     private InputAction driftAction;
     
     // Valores de input
-    private Vector2 moviment;
+    private Vector2 movement;
     private float speedInput;
     private bool isDrifting;
     private float driftTimer; // Conta quanto tempo você ficou em drift para calcular o nível do turbo
@@ -75,10 +75,10 @@ public class CarMoviment : MonoBehaviour
     void Update()
     {
         // Input de acelerar/frear
-        moviment = inputAction.ReadValue<Vector2>();
+        movement = inputAction.ReadValue<Vector2>();
         // Se o botão está pressionado E o carro está correndo rápido, ativa o Drift
         bool capotandoCheck = sphereRB.linearVelocity.magnitude > 5f;
-        if (driftAction.IsPressed() && capotandoCheck && Mathf.Abs(moviment.x) > 0.1f)
+        if (driftAction.IsPressed() && capotandoCheck && Mathf.Abs(movement.x) > 0.1f)
         {
             isDrifting = true; // Ativou o drift neste frame
             SetParticleStatus(true);
@@ -93,7 +93,7 @@ public class CarMoviment : MonoBehaviour
             }
         }
 
-        speedInput = moviment.y * (moviment.y > 0 ? forwardAccel : reverseAccel);
+        speedInput = movement.y * (movement.y > 0 ? forwardAccel : reverseAccel);
 
         // Lógica de Rotação por Inércia
         // Verificamos a magnitude da velocidade física, não o input do teclado
@@ -105,7 +105,7 @@ public class CarMoviment : MonoBehaviour
             float multiplier = velocityDirection > 0 ? 1f : -1f;
             float currentTurnStrength = isDrifting ? turnStrength * driftTurnMultiplier : turnStrength;
             
-            float rotationAmount = moviment.x * currentTurnStrength * Time.deltaTime * multiplier;
+            float rotationAmount = movement.x * currentTurnStrength * Time.deltaTime * multiplier;
             transform.Rotate(0, rotationAmount, 0, Space.World);
         }
 
@@ -128,10 +128,10 @@ public class CarMoviment : MonoBehaviour
         if (isDrifting)
         {
             // Eixo Z: Multiplica pelo sinal do input para inclinar para o lado certo da curva
-            targetTilt = -Mathf.Sign(moviment.x) * driftVisualTilt;
+            targetTilt = -Mathf.Sign(movement.x) * driftVisualTilt;
 
             // Eixo Y: Aponta o bico do carro levemente para o interior da curva enquanto desliza
-            targetYaw = Mathf.Sign(moviment.x) * driftVisualYaw;
+            targetYaw = Mathf.Sign(movement.x) * driftVisualYaw;
         }
 
         // 1. Tratamento seguro do eixo Z (evitando bugs de rotação da Unity de 0 a 360)
@@ -251,7 +251,7 @@ public class CarMoviment : MonoBehaviour
 
     void MoveWheels()
     {
-        float targetSteerAngle = moviment.x * maxSteerAngle;
+        float targetSteerAngle = movement.x * maxSteerAngle;
         smoothedSteerAngle = Mathf.MoveTowards(smoothedSteerAngle, targetSteerAngle, steerSmoothingSpeed * maxSteerAngle * Time.deltaTime);
 
         if (wheelFrontLeft != null) {

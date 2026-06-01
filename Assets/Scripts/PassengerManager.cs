@@ -4,7 +4,7 @@ using UnityEngine;
 public class PassengerManager : MonoBehaviour
 {
     public static PassengerManager Instance { get; private set; }
-    public CarMoviment carMoviment;
+    public CarMovement CarMovement;
     public int capacity = 4;
     public Transform[] seats;
     public float dropOffRadius = 8f;
@@ -21,16 +21,16 @@ public class PassengerManager : MonoBehaviour
             return;
         }
         Instance = this;
-        if (carMoviment == null)
-            carMoviment = GetComponent<CarMoviment>();
+        if (CarMovement == null)
+            CarMovement = GetComponent<CarMovement>();
     }
 
     public Transform CarTransform => transform;
 
     public bool IsCarStopped()
     {
-        if (carMoviment != null && carMoviment.sphereRB != null)
-            return carMoviment.sphereRB.linearVelocity.magnitude <= stoppedSpeedThreshold;
+        if (CarMovement != null && CarMovement.sphereRB != null)
+            return CarMovement.sphereRB.linearVelocity.magnitude <= stoppedSpeedThreshold;
         return true;
     }
 
