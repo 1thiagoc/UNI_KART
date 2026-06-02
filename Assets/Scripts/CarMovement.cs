@@ -1,18 +1,18 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using TMPro;
 
 public class CarMovement : MonoBehaviour
 {
     public Rigidbody sphereRB;
     public TMP_Text speedText;
-    
+
     [Header("Velocidade")]
-    public float forwardAccel = 8f;
-    public float reverseAccel = 4f;
-    public float maxSpeed = 50f;
+    public float forwardAccel = 4f;
+    public float reverseAccel = 3f;
+    public float maxSpeed = 30f;
     public float brakeForce = 15f;
-    public float turnStrength = 180f;
+    public float turnStrength = 90f;
 
     [Header("Física Extra Anti-Pulo")]
     public float extraGravity = 30f; // Força para puxar o carro para baixo
@@ -22,8 +22,12 @@ public class CarMovement : MonoBehaviour
 
     [Header("Sistema de Drift & Boost")]
     public float driftTurnMultiplier = 1.6f; // O carro vira MAIS rápido durante o drift
-    [Range(0f, 1f)] public float driftGrip = 0.04f; // Menor = desliza mais de lado (estilo gelo)
-    [Range(0f, 1f)] public float normalGrip = 0.15f; // Maior = gruda mais no chão
+
+    [Range(0f, 1f)]
+    public float driftGrip = 0.04f; // Menor = desliza mais de lado (estilo gelo)
+
+    [Range(0f, 1f)]
+    public float normalGrip = 0.15f; // Maior = gruda mais no chão
     public float boostForce = 25f; // Força do turbo ao soltar o botão
     public float boostDuration = 0.5f; // Quanto tempo dura o turbo
     private float boostTimer;
@@ -42,7 +46,7 @@ public class CarMovement : MonoBehaviour
     [Header("Efeitos Visuais do Drift")]
     public Transform carVisual; // O modelo 3D do carro (filho deste objeto)
     public float driftVisualTilt = 15f; // Ângulo de inclinação do carro no drift
-    public float driftVisualYaw = 20f;  // Ângulo de rotação lateral do chassi no drift (Eixo Y)
+    public float driftVisualYaw = 20f; // Ângulo de rotação lateral do chassi no drift (Eixo Y)
     public float visualSmoothSpeed = 10f; // Velocidade de transição da rotação visual
     public ParticleSystem[] wheelParticles; // Arraste os Particle Systems das rodas traseiras para cá
     public Color normalDriftColor = Color.yellow;
@@ -51,7 +55,7 @@ public class CarMovement : MonoBehaviour
     // Input System
     private InputAction inputAction;
     private InputAction driftAction;
-    
+
     // Valores de input
     private Vector2 movement;
     private float speedInput;
@@ -103,20 +107,24 @@ public class CarMovement : MonoBehaviour
         {
             // Se a velocidade for positiva, gira normal. Se for negativa (ré), inverte o giro.
             float multiplier = velocityDirection > 0 ? 1f : -1f;
-            float currentTurnStrength = isDrifting ? turnStrength * driftTurnMultiplier : turnStrength;
-            
+            float currentTurnStrength = isDrifting
+                ? turnStrength * driftTurnMultiplier
+                : turnStrength;
+
             float rotationAmount = movement.x * currentTurnStrength * Time.deltaTime * multiplier;
             transform.Rotate(0, rotationAmount, 0, Space.World);
         }
 
         // Cronômetros
-        if (isDrifting) driftTimer += Time.deltaTime;
-        if (boostTimer > 0) boostTimer -= Time.deltaTime;
+        if (isDrifting)
+            driftTimer += Time.deltaTime;
+        if (boostTimer > 0)
+            boostTimer -= Time.deltaTime;
 
         transform.position = sphereRB.transform.position;
         // Aplica os efeitos visuais de inclinação de chassis
         HandleVisualTilt();
-    
+
         MoveWheels();
     }
 
@@ -136,14 +144,20 @@ public class CarMovement : MonoBehaviour
 
         // 1. Tratamento seguro do eixo Z (evitando bugs de rotação da Unity de 0 a 360)
         float currentTiltZ = carVisual.localRotation.eulerAngles.z;
-        if (currentTiltZ > 180) currentTiltZ -= 360;
+        if (currentTiltZ > 180)
+            currentTiltZ -= 360;
         float smoothedTilt = Mathf.MoveTowards(currentTiltZ, targetTilt, 90f * Time.deltaTime);
 
         // 2. Tratamento seguro do eixo Y local para a rotação de lado
         float currentYawY = carVisual.localRotation.eulerAngles.y;
-        if (currentYawY > 180) currentYawY -= 360;
-        float smoothedYaw = Mathf.MoveTowards(currentYawY, targetYaw, visualSmoothSpeed * driftVisualYaw * Time.deltaTime);
-        
+        if (currentYawY > 180)
+            currentYawY -= 360;
+        float smoothedYaw = Mathf.MoveTowards(
+            currentYawY,
+            targetYaw,
+            visualSmoothSpeed * driftVisualYaw * Time.deltaTime
+        );
+
         // 3. Aplicamos as rotações calculadas travando estritamente o eixo X em zero
         carVisual.localRotation = Quaternion.Euler(0f, smoothedYaw, smoothedTilt);
     }
@@ -152,9 +166,12 @@ public class CarMovement : MonoBehaviour
     {
         foreach (var p in wheelParticles)
         {
-            if (p == null) continue;
-            if (playing && !p.isPlaying) p.Play();
-            if (!playing && p.isPlaying) p.Stop();
+            if (p == null)
+                continue;
+            if (playing && !p.isPlaying)
+                p.Play();
+            if (!playing && p.isPlaying)
+                p.Stop();
         }
     }
 
@@ -162,10 +179,11 @@ public class CarMovement : MonoBehaviour
     {
         // Altera a cor das partículas baseado no tempo de drift
         Color currentColor = driftTimer > 0.6f ? turboReadyColor : normalDriftColor;
-        
+
         foreach (var p in wheelParticles)
         {
-            if (p == null) continue;
+            if (p == null)
+                continue;
             var mainModule = p.main;
             mainModule.startColor = currentColor;
         }
@@ -183,7 +201,12 @@ public class CarMovement : MonoBehaviour
             int speedInKmh = Mathf.RoundToInt(carSpeed * 2.5f); // Ajuste o multiplicador (2.5f) para parecer realista na sua pista
             speedText.text = "Velocidade: " + speedInKmh + " KM/H";
         }
-        bool isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
+        bool isGrounded = Physics.Raycast(
+            transform.position,
+            Vector3.down,
+            groundCheckDistance,
+            groundLayer
+        );
         if (isGrounded)
         {
             // Se estiver colado na pista, empurra para baixo com força extra para ignorar mini-fendas
@@ -196,16 +219,21 @@ public class CarMovement : MonoBehaviour
         }
         sphereRB.linearDamping = normalDrag;
         float currentSpeed = sphereRB.linearVelocity.magnitude;
-    
+
         // 2. A MÁGICA DO DRIFT (Ajuste de Grip)
         if (currentSpeed > 0.5f)
         {
             float velocityDirection = Vector3.Dot(sphereRB.linearVelocity, transform.forward);
-            Vector3 targetDirection = velocityDirection > 0 ? transform.forward : -transform.forward;
+            Vector3 targetDirection =
+                velocityDirection > 0 ? transform.forward : -transform.forward;
 
             // Se estiver em drift, usamos 'driftGrip' (baixo, faz deslizar). Se não, usamos 'normalGrip' (alto, gruda).
             float currentGrip = isDrifting ? driftGrip : normalGrip;
-            sphereRB.linearVelocity = Vector3.Lerp(sphereRB.linearVelocity, targetDirection * currentSpeed, currentGrip);
+            sphereRB.linearVelocity = Vector3.Lerp(
+                sphereRB.linearVelocity,
+                targetDirection * currentSpeed,
+                currentGrip
+            );
         }
 
         // 3. Sistema de Aceleração / Turbo
@@ -220,10 +248,11 @@ public class CarMovement : MonoBehaviour
             sphereRB.AddForce(transform.forward * boostForce, ForceMode.VelocityChange);
         }
 
-        bool canAccelerate = Mathf.Abs(currentAccel) > 0 && sphereRB.linearVelocity.magnitude < currentMaxSpeed;
+        bool canAccelerate =
+            Mathf.Abs(currentAccel) > 0 && sphereRB.linearVelocity.magnitude < currentMaxSpeed;
         if (canAccelerate)
         {
-            sphereRB.AddForce(transform.forward * currentAccel * 10f, ForceMode.Acceleration);
+            sphereRB.AddForce(transform.forward * currentAccel * 4f, ForceMode.Acceleration);
         }
 
         // Trava de Velocidade Dinâmica
@@ -252,12 +281,18 @@ public class CarMovement : MonoBehaviour
     void MoveWheels()
     {
         float targetSteerAngle = movement.x * maxSteerAngle;
-        smoothedSteerAngle = Mathf.MoveTowards(smoothedSteerAngle, targetSteerAngle, steerSmoothingSpeed * maxSteerAngle * Time.deltaTime);
+        smoothedSteerAngle = Mathf.MoveTowards(
+            smoothedSteerAngle,
+            targetSteerAngle,
+            steerSmoothingSpeed * maxSteerAngle * Time.deltaTime
+        );
 
-        if (wheelFrontLeft != null) {
+        if (wheelFrontLeft != null)
+        {
             wheelFrontLeft.localRotation = Quaternion.Euler(0, smoothedSteerAngle, 0);
         }
-        if (wheelFrontRight != null) {
+        if (wheelFrontRight != null)
+        {
             wheelFrontRight.localRotation = Quaternion.Euler(0, smoothedSteerAngle, 0);
         }
     }
