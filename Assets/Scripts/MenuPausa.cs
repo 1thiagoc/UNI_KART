@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 public class MenuPausa : MonoBehaviour
 {
     public GameObject painelPausa;
+    public GameObject painelConfiguracoes;
     public AudioClip pauseSfx;
 
     private bool pausado = false;
@@ -49,5 +50,17 @@ public class MenuPausa : MonoBehaviour
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene("Menu");
+    }
+
+    public void AoBotaoConfiguracoes()
+    {
+        painelPausa.SetActive(false);
+        painelConfiguracoes.SetActive(true);
+    }
+
+    public void FecharConfiguracoes()
+    {
+        painelConfiguracoes.SetActive(false);
+        painelPausa.SetActive(true);
     }
 }

@@ -27,7 +27,6 @@ public class MenuPrincipal : MonoBehaviour
         // Garantir que exista um AudioManager persistente
         if (AudioManager.Instance == null)
         {
-            Debug.Log("MenuPrincipal: nenhum AudioManager encontrado — criando um novo.");
             var go = new GameObject("AudioManager");
             go.AddComponent<AudioManager>();
         }
@@ -42,7 +41,6 @@ public class MenuPrincipal : MonoBehaviour
     {
         if (Keyboard.current.spaceKey.wasPressedThisFrame)
         {
-            Debug.Log("Espaço pressionado!");
             AoBotaoJogar();
         }
     }
@@ -50,9 +48,9 @@ public class MenuPrincipal : MonoBehaviour
     IEnumerator SequenciaAbertura()
     {
         telaFade.color = new Color(0, 0, 0, 1);
-        yield return new WaitForSeconds(0.3f);
+        // yield return new WaitForSeconds(0.3f);
         yield return StartCoroutine(FadeAlpha(1f, 0f, 2f));
-        yield return new WaitForSeconds(0.5f);
+        // yield return new WaitForSeconds(0.5f);
         painelMenu.SetActive(true);
         yield return StartCoroutine(BotoesEmCascata());
     }
@@ -126,5 +124,16 @@ public class MenuPrincipal : MonoBehaviour
     {
         painelConfiguracoes.SetActive(false);
         painelMenu.SetActive(true);
+    }
+
+    public void SairDoJogo()
+    {
+        // Se estiver rodando dentro do editor da Unity
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
+            // Se for o jogo final compilado (PC, Android, WebGL, etc.)
+            Application.Quit();
+        #endif
     }
 }
