@@ -22,6 +22,7 @@ public class CarMovement : MonoBehaviour
 
     [Header("Sistema de Drift & Boost")]
     public float driftTurnMultiplier = 1.6f; // O carro vira MAIS rápido durante o drift
+    public float driftTimerThreshold = 0.6f; // Tempo mínimo de drift para ganhar o mini-turbo
 
     [Range(0f, 1f)]
     public float driftGrip = 0.04f; // Menor = desliza mais de lado (estilo gelo)
@@ -88,13 +89,10 @@ public class CarMovement : MonoBehaviour
             SetParticleStatus(true);
             UpdateParticleEffects();
         }
-        else
+        else if (isDrifting)
         {
             // Se soltou o botão e estava em drift, solta o Mini-Turbo!
-            if (isDrifting)
-            {
-                TriggerMiniTurbo();
-            }
+            TriggerMiniTurbo();
         }
 
         speedInput = movement.y * (movement.y > 0 ? forwardAccel : reverseAccel);
@@ -178,7 +176,7 @@ public class CarMovement : MonoBehaviour
     void UpdateParticleEffects()
     {
         // Altera a cor das partículas baseado no tempo de drift
-        Color currentColor = driftTimer > 0.6f ? turboReadyColor : normalDriftColor;
+        Color currentColor = driftTimer > driftTimerThreshold ? turboReadyColor : normalDriftColor;
 
         foreach (var p in wheelParticles)
         {
@@ -266,9 +264,10 @@ public class CarMovement : MonoBehaviour
     {
         isDrifting = false;
         SetParticleStatus(false);
+        Debug.Log("Drift Stopped! Drift Time: " + driftTimer.ToString("F2") + " seconds");
 
         // Só ganha turbo se segurou o drift por mais de 0.6 segundos (evita ganhar turbo só clicando rápido)
-        if (driftTimer > 0.6f)
+        if (driftTimer > driftTimerThreshold)
         {
             boostTimer = boostDuration;
             Debug.Log("MINI TURBO ACTIVATED!");

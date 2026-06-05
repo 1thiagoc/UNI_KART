@@ -9037,7 +9037,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 139.2}
-  m_SizeDelta: {x: 340, y: 50}
+  m_SizeDelta: {x: 380, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &280508546
 MonoBehaviour:
@@ -62943,6 +62943,10 @@ PrefabInstance:
       propertyPath: speedText
       value: 
       objectReference: {fileID: 4729157}
+    - target: {fileID: 23415110248406992, guid: 6d2f2310da6686b439edce0ba3327622, type: 3}
+      propertyPath: driftTimerThreshold
+      value: 0.4
+      objectReference: {fileID: 0}
     - target: {fileID: 440003913182370040, guid: 6d2f2310da6686b439edce0ba3327622, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.89
