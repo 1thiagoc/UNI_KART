@@ -79,7 +79,7 @@ public class DestinationUI : MonoBehaviour
     {
         if (destinationNames != null && destinationNames.Length > 0)
         {
-            var spawner = FindFirstObjectByType<PersonSpawner>();
+            var spawner = FindAnyObjectByType<PersonSpawner>();
             if (spawner != null && spawner.destinationPoints != null)
             {
                 for (int i = 0; i < spawner.destinationPoints.Length; i++)
@@ -111,7 +111,7 @@ public class DestinationUI : MonoBehaviour
 
     void OnValidate()
     {
-        var spawner = FindFirstObjectByType<PersonSpawner>();
+        var spawner = FindAnyObjectByType<PersonSpawner>();
         if (spawner != null && spawner.destinationPoints != null && destinationNames != null)
         {
             if (destinationNames.Length != spawner.destinationPoints.Length)

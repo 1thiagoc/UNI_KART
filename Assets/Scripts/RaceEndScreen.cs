@@ -36,8 +36,8 @@ public class RaceEndScreen : MonoBehaviour
         if (btnMenu != null)    btnMenu.onClick.AddListener(GoToMenu);
 
         totalCount = totalPassengersToDeliver > 0
-            ? totalPassengersToDeliver
-            : FindObjectsByType<Person>(FindObjectsSortMode.None).Length;
+        ? totalPassengersToDeliver
+        : FindObjectsByType<Person>().Length;
     }
 
     void Update()
