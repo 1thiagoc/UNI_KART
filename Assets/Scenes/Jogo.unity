@@ -52905,7 +52905,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 71472874ff069224b95b141a0526d432, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersonSpawner
-  personPrefab: {fileID: 5139666920524405419, guid: 68449bdc2fe089140a9fa41a51921e02, type: 3}
+  personPrefabs:
+  - {fileID: 5139666920524405419, guid: 68449bdc2fe089140a9fa41a51921e02, type: 3}
+  - {fileID: 8798113314919531519, guid: 04f97845abb19db42a95f48d8ccf6a71, type: 3}
+  - {fileID: 9221342930631031818, guid: 0b161aeecf94b6740952dca9ce8860b7, type: 3}
   spawnPoints:
   - {fileID: 1859280459}
   - {fileID: 1352878511}
@@ -64396,7 +64399,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6676692169053630839, guid: 0270035c124a6de4c8334d0f48cc142a, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -151.35
+      value: -150.31
       objectReference: {fileID: 0}
     - target: {fileID: 6676692169053630839, guid: 0270035c124a6de4c8334d0f48cc142a, type: 3}
       propertyPath: m_LocalPosition.y

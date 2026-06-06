@@ -5,7 +5,7 @@ public class PersonSpawner : MonoBehaviour
     [Tooltip(
         "Optional prefab with a Person component. If empty, the spawner will create simple cylinders at runtime."
     )]
-    public GameObject personPrefab;
+    public GameObject[] personPrefabs;
     public Transform[] spawnPoints;
     public Transform[] destinationPoints;
 
@@ -73,26 +73,34 @@ public class PersonSpawner : MonoBehaviour
             // Se for uma StopZone válida e tiver pontos na calçada, spawna um passageiro por ponto!
             if (stopZone != null && stopZone.sidewalkPoints != null && stopZone.sidewalkPoints.Length > 0)
             {
+                int personCount = 0;
                 foreach (Transform point in stopZone.sidewalkPoints)
                 {
                     if (point == null) continue;
-                    CreatePassenger(point.position, point.rotation, stopZone);
+                    
+                    int prefabIndex = personCount % (personPrefabs.Length > 0 ? personPrefabs.Length : 1);
+                    CreatePassenger(point, stopZone, prefabIndex);
+                    personCount++;
                 }
             }
             else
             {
                 // Fallback de segurança: se não for uma vaga com calçadas, spawna apenas um no centro do ponto
-                CreatePassenger(sp.position, sp.rotation, stopZone);
+                CreatePassenger(sp, stopZone, 0);
             }
         }
     }
 
-    private void CreatePassenger(Vector3 position, Quaternion rotation, StopZone sourceZone)
+    private void CreatePassenger(Transform spawnPoint, StopZone sourceZone, int prefabIndex)
     {
+        Vector3 position = spawnPoint.position;
+        Quaternion rotation = spawnPoint.rotation;
         GameObject personGO;
-        if (personPrefab != null)
+        if (personPrefabs != null && personPrefabs.Length > 0)
         {
-            personGO = Instantiate(personPrefab, position, rotation, null);
+            Debug.Log(personPrefabs[prefabIndex]);
+            Debug.Log(prefabIndex);
+            personGO = Instantiate(personPrefabs[prefabIndex], position, rotation, null);
         }
         else
         {
@@ -114,7 +122,7 @@ public class PersonSpawner : MonoBehaviour
             person = personGO.AddComponent<Person>();
 
         var animator = personGO.GetComponentInChildren<Animator>();
-        if (animator == null && personPrefab != null)
+        if (animator == null && personPrefabs[prefabIndex] != null)
         {
             // Se o prefab tiver um modelo 3D interno com Animator, tenta buscar
             animator = personGO.GetComponentInChildren<Animator>();
